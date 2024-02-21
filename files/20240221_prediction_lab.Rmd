@@ -1,0 +1,807 @@
+---
+title: "예측방법론 실습"
+output: html_document
+---
+
+# 준비
+
+`library()` 함수는 기본 `R` 배포에 포함되어 있지 않은 함수랑 데이터셋의 모임인 *library*를 불러낸낸다. 최소 제곱 선형 회귀 및 기타 간단한 분석을 수행하는 기본 함수는 기본 배포에 포함되어 있지만, 더 다양한 함수를 사용하려면 추가 라이브러리가 필요하다.
+여기선 이 책과 관련된 데이터셋을 포함하는 ISLR2 패키지를 로드한다.
+
+```{r chunk31}
+# library(MASS)
+library(ISLR2)
+```
+
+이러한 라이브러리를 불러올 때 오류 메시지가 표시되면 해당 라이브러리가 아직 시스템에 설치되지 않아서일 가능성이 높다. `MASS`와 같은 일부 라이브러리는 `R`과 함께 제공되어 컴퓨터에 별도로 설치할 필요가 없다. 그러나 `ISLR2`와 같은 다른 패키지는 처음 사용될 때 다운로드해야 한다. 이는 R 내에서 직접 할 수 있다. 예를 들어 Rstudio 에서는 Packages 탭 아래의 Install package 옵션을 선택한다. 임의의 미러 사이트를 선택하면 사용 가능한 패키지 목록이 표시된다. 원하는 패키지를 선택하면 `R`이 자동으로 패키지를 다운로드한다. 또는 이를 R 명령 줄에서 `install.packages("ISLR2")`를 통해 수행할 수 있다. 이 설치는 패키지를 처음 사용할 때에만 필요하다. 그러나 library() 함수는 각 `R` 세션에서 호출되어야 한다.
+
+
+# 단순선형회귀, 다중선형회귀
+
+## 단순선형회귀(Simple Linear Regression)
+
+`ISLR2` 라이브러리에는 Boston 데이터셋이 포함되어 있다. 이 데이터셋은 보스턴의 $506$개 인구 조사 구역에서 `medv`(중간 주택 가격)를 기록한다. 우리는 rmvar(집 당 평균 방 수), `age`(1940년 이전에 건설된 주택의 비율) 및 `lstat`(저소득층 비율)와 같은 $12$개의 예측 변수를 사용하여 medv를 예측하려고 한다.
+
+```{r chunk32}
+head(Boston)
+```
+
+데이터셋을 더 자세히 알아보려면 `?Boston`을 입력하면 된다.
+
+우선 `lm()` 함수를 사용하여 단순 선형 회귀 모델을 적합해 보는데, 여기서 `medv`이 반응변수이고 `lstat`이 예측변수이다. 기본 구문은 `lm(y ~ x, data)`이며,`y`는 반응변수, `x`는 예측변수이고, `data`는 이 두 변수가 포함된 데이터셋이다.
+
+```{r chunk33, error=TRUE}
+lm.fit <- lm(medv ~ lstat)
+```
+
+이 명령은 `R`이 `medv`와 `lstat` 변수를 어디서 찾을지 모르기 때문에 오류가 발생한다. 다음 명령은 `R`에게 변수가 `Boston`에 있다고 알려준다. `R`에 `Boston`을 첨부(attach)하면 `R`이 이제 변수를 인식하므로 첫 줄도 잘 작동한다.
+
+```{r chunk34}
+lm.fit <- lm(medv ~ lstat, data = Boston)
+attach(Boston)
+lm.fit <- lm(medv ~ lstat)
+```
+
+
+`lm.fit`을 입력하면 모형에 대한 일부 기본 정보가 출력된다. 보다 자세한 정보를 얻으려면 `summary(lm.fit)`를 사용합니다. 이렇게 하면 계수에 대한 $p$-값과 표준 오차, 모형에 대한 $R^2$ 통계 및 $F$-통계를 볼 수 있다.
+
+
+```{r chunk35}
+lm.fit
+summary(lm.fit)
+```
+
+`lm.fit`에 어떤 정보들이 있는지 보기 위해 `names()` 함수를 사용할 수 있다. 그 정보에 접근하기 위해 `lm.fit$coefficients`와 같은 식으로 이름을 이용하여 추출할 수 있지만, `coef()`와 같은 식으로 추출기 함수를 사용하여 정보를 접근하는 편이 더 안전하다.
+
+```{r chunk36}
+names(lm.fit)
+coef(lm.fit)
+```
+
+계수 추정량에 대한 신뢰 구간을 얻기 위해 `confint()` 명령을 사용할 수 있다.
+
+In order to obtain a confidence interval for the coefficient estimates, we can use the `confint()` command.
+
+```{r chunk37}
+confint(lm.fit)
+```
+
+predict() 함수를 사용하여 주어진 `lstat` 값에 대한 `medv` 예측의 신뢰 구간과 예측 구간을 생성할 수 있다.
+
+The `predict()` function can be used to produce confidence intervals and prediction intervals for the prediction of `medv` for a given value of `lstat`.
+
+```{r chunk38}
+predict(lm.fit, data.frame(lstat = (c(5, 10, 15))),
+    interval = "confidence")
+predict(lm.fit, data.frame(lstat = (c(5, 10, 15))),
+    interval = "prediction")
+```
+
+예를 들어, `lstat` 값이 10인 경우 95\% 신뢰 구간은 $(24.47, 25.63)$이며, 95\% 예측 구간은 $(12.828, 37.28)$이다. 기대한 대로, 신뢰 구간과 예측 구간은 동일한 지점(즉, `lstat`가 10일 때 `medv`의 예측 값인 $25.05$)을 중심으로 하지만 예측 구간이 훨씬 넓다.
+
+이제 `plot()` 및 `abline()` 함수를 사용하여 `medv`와 `lstat`을 최소 제곱 회귀선과 함께 그린다.
+
+```{r chunk39}
+plot(lstat, medv)
+abline(lm.fit)
+```
+
+lstat와 medv 사이의 관계에 비선형성이 일부 있음을 볼 수 있다. 나중에 이 문제를 다시 볼 것이다.
+
+`abline()` 함수는 최소 제곱 회귀선뿐만 아니라 모든 선을 그리는 데 사용할 수 있다.
+절편 a와 기울기 b를 가진 선을 그리려면 abline(a, b)를 입력한다. 아래에서 선 및 점을 그리기 위한 몇 가지 추가 설정을 볼 것이다.
+`lwd = 3` 명령은 회귀선의 폭을 3배로 증가시킨다. 이는 `plot()` 및 `lines()` 함수에도 적용된다. 점을 찍는 데에 다른 기호를 쓰려면 `pch` 옵션을 사용하면 된다.
+
+```{r chunk310}
+plot(lstat, medv)
+abline(lm.fit, lwd = 3)
+abline(lm.fit, lwd = 3, col = "red")
+plot(lstat, medv, col = "red")
+plot(lstat, medv, pch = 20)
+plot(lstat, medv, pch = "+")
+plot(1:20, 1:20, pch = 1:20)
+```
+
+
+
+## 다중선형회귀(Multiple Linear Regression)
+
+최소 제곱을 사용하여 다중 선형 회귀 모델을 적합하려면 다시 `lm()` 함수를 사용한다. 구문 `lm(y ~ x1 + x2 + x3)`은 세 개의 예측 변수 `x1`, `x2`, 및 `x3`를 사용하여 모형을 적합한다.
+`summary()` 함수는 모든 예측 변수에 대한 회귀 계수를 출력한다.
+
+
+```{r chunk314}
+lm.fit <- lm(medv ~ lstat + age, data = Boston)
+summary(lm.fit)
+```
+
+`Boston` 데이터셋에는 12개의 변수가 포함되어 있으므로 모든 예측 변수를 사용하여 회귀를 수행하려면 모두 입력하는 것이 번거롭다. 대신 다음 약식을 사용할 수 있습니다:
+
+```{r chunk315}
+lm.fit <- lm(medv ~ ., data = Boston)
+summary(lm.fit)
+```
+
+요약 객체의 개별 구성 요소에 이름을 사용하여 접근할 수 있다(사용 가능한 내용을 보려면 `?summary.lm`을 입력한다). 따라서 `summary(lm.fit)$r.sq`는 $R^2$를 제공하고 `summary(lm.fit)$sigma`는 RSE를 제공한다.
+
+모든 변수를 사용하지만 하나를 제외한 회귀분석은 어떻게 할까? 예를 들어, 위의 회귀 결과에서 `age`의 $p$-값이 높다. 따라서 이 예측 변수를 제외한 회귀를 하고자 할 수 있다.
+다음 구문은 `age`를 제외한 모든 예측 변수를 사용한 회귀분석을 실행한다.
+
+```{r chunk317}
+lm.fit1 <- lm(medv ~ . - age, data = Boston)
+summary(lm.fit1)
+```
+
+대안으로 update() 함수를 사용할 수 있다.
+
+```{r chunk318}
+lm.fit1 <- update(lm.fit, ~ . - age)
+```
+
+# 가변수(지시변수)
+
+이제 `ISLR2` 라이브러리의 `Carseats` 데이터를 살펴볼 것이다. 여러 예측 변수를 기반으로 $400$개의 위치에서 `Sales`(어린이 카시트 판매)를 예측하려고 합니다.
+
+
+```{r chunk325}
+head(Carseats)
+```
+
+`Carseats` 데이터에는 각 위치의 카시트가 전시된 가게 내부 공간인 shelveloc와 같은 질적 예측 변수가 포함되어 있다. 예측 변수 `shelveloc`는 세 가지 값(*Bad*, *Medium*, *Good*) 중 하나를 가진다. shelveloc와 같은 질적 변수가 주어진 경우 R은 자동으로 가변수(지시 변수, dummy variable)를 생성한다. 아래에서 다중 회귀 모델을 적합한다.
+
+```{r chunk326}
+lm.fit <- lm(Sales ~ ., data = Carseats)
+summary(lm.fit)
+```
+
+`contrasts()` 함수는 `R`이 가변수에 사용하는 코딩을 반환한다.
+
+```{r chunk327}
+attach(Carseats)
+contrasts(ShelveLoc)
+```
+
+다른 대조 방법 및 설정 방법에 대해 알아보려면 `?contrasts`를 사용하면 된다.
+
+`R`은 `ShelveLocGood` 가변수를 생성했다. 이 변수는 전시 위치가 좋으면 값이 1이고 그렇지 않으면 0입니다. 또한 `ShelveLocMedium` 가가변수를 생성했으며, 이 변수는 전시 위치가 중간이면 값이 1이고 그렇지 않으면 0이다. 나쁜 전시 위치는 두 가변수 각각에 대해 0에 해당합니다.
+회귀 결과에서 `ShelveLocGood`에 대한 계수가 양수이므로 좋은 전시 위치가 높은 판매와 관련이 있음을 나타낸다(나쁜 위치에 비해). 그리고 `ShelveLocMedium`는 상대적으로 작은 양수 계수를 갖고 있으며, 이는 중간 전시 위치가 나쁜 전시 위치보다 높은 판매와 관련이 있지만 좋은 전시 위치보다는 낮은 판매와 관련이 있다는 것을 나타낸다.
+
+
+# 모형진단
+
+다음으로 일부 진단 플롯을 살펴볼 것이다.
+`lm()`에서 출력된 결과에 직접 `plot()` 함수를 적용하여 자동으로 생성되는 진단 플롯이 네 개 있습니다. 일반적으로 이 명령은 한 번에 한 개의 플롯을 생성하며, *Enter*를 누르면 다음 플롯이 생성된다. 그러나 종종 네 개의 플롯을 모두 함께 보는 것이 편리하다. 이를 위해 `par()` 및 `mfrow()` 함수를 사용하여 `R`에게 화면을 여러 패널로 나누어 여러 플롯을 동시에 볼 수 있도록 지시할 수 있다. 예를 들어, `par(mfrow = c(2, 2))`는 화면을 $2 \times 2$ 격자로 나눕니다.
+
+```{r chunk311}
+par(mfrow = c(2, 2))
+lm.fit <- lm(medv ~ lstat + age, data = Boston)
+plot(lm.fit)
+```
+
+대안으로, `residuals()` 함수를 사용하여 선형 회귀 적합에서 잔차를 계산할 수 있다. 함수 `rstudent()`는 studentized 잔차를 반환하며, 이 함수를 사용하여 잔차와 적합된 값을 플롯할 수 있습니다.
+
+```{r chunk312}
+plot(predict(lm.fit), residuals(lm.fit))
+plot(predict(lm.fit), rstudent(lm.fit))
+```
+
+잔차 플롯을 기반으로 보면, 비선형성이 나타난다. `hatvalues()` 함수를 사용하여 여러 예측 변수에 대한 레버리지 통계량을 계산할 수 있다.
+
+On the basis of the residual plots, there is some evidence of non-linearity.
+Leverage statistics can be computed for any number of predictors using the `hatvalues()` function.
+
+```{r chunk313}
+plot(hatvalues(lm.fit))
+which.max(hatvalues(lm.fit))
+```
+
+`which.max()` 함수는 벡터의 가장 큰 요소의 인덱스를 식별한다. 이 경우 가장 큰 레버리지 통계량을 갖는 관측치를 알려줍니다.
+
+# 변수 선택, 능선회귀, 라쏘
+## 변수 선택
+
+### 최적부분집합선택(Best Subset Selection)
+
+여기서는 `Hitters` 데이터에 최적부분집합선택(Best Subset Selection) 접근 방식을 적용합니다.
+이 데이터에선 지난 해의 성적과 관련된 다양한 통계를 바탕으로 야구 선수의 Salary(연봉)를 예측하려고 한다.
+
+먼저 `Salary` 변수가 일부 선수에게 누락되었다는 것을 볼 수 있다. 누락된 관측값을 식별하는 데 `is.na()` 함수를 사용할 수 있습니다. 이 함수는 입력 벡터와 동일한 길이의 벡터를 반환하며 누락된 요소가 있는 경우 `TRUE`를 반환하고 그렇지 않으면 `FALSE`를 반환합니다.
+그런 다음 `sum()` 함수를 사용하여 누락된 데이터의 수를 계산할 수 있다.
+
+```{r chunk61}
+library(ISLR2)
+names(Hitters)
+dim(Hitters)
+sum(is.na(Hitters$Salary))
+```
+
+따라서 `Salary`가 $59$명의 선수에게 누락되었음을 알 수 있다. `na.omit()` 함수는 모든 변수에 누락된 값이 있는 행을 제거한다.
+
+```{r chunk62}
+Hitters <- na.omit(Hitters)
+dim(Hitters)
+sum(is.na(Hitters))
+```
+
+`regsubsets()` 함수(`leaps` 라이브러리의 일부)는 RSS를 사용하여 주어진 예측 변수의 개수를 포함하는 최상의 모델을 식별하여 최적부분집합선택(Best Subset Selection)을 수행한다. 구문은 `lm()`과 동일하다.` summary()` 명령은 각 모델 크기에 대한 최적의 변수 집합을 출력한다.
+
+
+```{r chunk63}
+library(leaps)
+regfit.full <- regsubsets(Salary ~ ., Hitters)
+summary(regfit.full)
+```
+
+별표(\*)는 해당 모델에 특정 변수가 포함되어 있음을 나타낸다.
+예를 들어, 이 출력에서 최상의 두 변수 모델에는 `Hits`와 `CRBI`만 포함되어 있음을 나타낸다.
+기본적으로 `regsubsets()`는 최상의 여덟 변수 모형까지만 결과를 보고한다. 그러나 `nvmax` 옵션을 사용하여 원하는 개수의 변수 모형을 찾을 수 있다. 여기서는 19개 변수 모형형까지 맞춘다.
+
+```{r chunk64}
+regfit.full <- regsubsets(Salary ~ ., data = Hitters,
+    nvmax = 19)
+reg.summary <- summary(regfit.full)
+```
+
+`summary()` 함수는 $R^2$, RSS, 조정된 $R^2$, $C_p$, BIC를 반환한다. 이를 통해 *최상*의 모형을 선택할 수 있다.
+
+```{r chunk65}
+names(reg.summary)
+```
+
+예를 들어, 모형에 하나의 변수만 포함된 경우 $R^2$ 통계치는 $32 \%$이고, 모든 변수가 포함된 경우 $55 \%$에 가까워진다. 예상대로 $R^2$ 통계치는 변수가 더 포함될수록 단조롭게 증가합니다.
+
+
+```{r chunk66}
+reg.summary$rsq
+```
+
+RSS, 조정된 $R^2$, $C_p$, BIC를 동시에 모든 모형에 대해 플롯하면 어떤 모형을 선택할지 결정하는 데 도움이 됩니다. `type = "l"` 옵션은 `R`에 플로팅된 점을 선으로 연결하도록 지시한다.
+
+```{r chunk67}
+par(mfrow = c(2, 2))
+plot(reg.summary$rss, xlab = "Number of Variables",
+    ylab = "RSS", type = "l")
+plot(reg.summary$adjr2, xlab = "Number of Variables",
+    ylab = "Adjusted RSq", type = "l")
+```
+
+`points()` 명령은 `plot()` 명령과 유사하지만 새로운 플롯을 생성하는 대신 이미 생성된 플롯에 점을 찍는다. `which.max()` 함수는 벡터의 최대 지점의 위치를 식별하는 데 사용할 수 있습니다. 이제 조정된 $R^2$ 통계치가 가장 큰 모델을 나타내기 위해 빨간 점을 플롯한다.
+
+```{r chunk68}
+which.max(reg.summary$adjr2)
+plot(reg.summary$adjr2, xlab = "Number of Variables",
+    ylab = "Adjusted RSq", type = "l")
+points(11, reg.summary$adjr2[11], col = "red", cex = 2, 
+    pch = 20)
+```
+
+유사한 방식으로 $C_p$ 및 BIC 통계를 플롯하고 which.min()을 사용하여 가장 작은 통계를 갖는 모델을 나타낼 수 있다.
+
+```{r chunk69}
+plot(reg.summary$cp, xlab = "Number of Variables",
+    ylab = "Cp", type = "l")
+which.min(reg.summary$cp)
+points(10, reg.summary$cp[10], col = "red", cex = 2,
+    pch = 20)
+which.min(reg.summary$bic)
+plot(reg.summary$bic, xlab = "Number of Variables",
+    ylab = "BIC", type = "l")
+points(6, reg.summary$bic[6], col = "red", cex = 2,
+    pch = 20)
+```
+
+`regsubsets()` 함수에는 BIC, $C_p$, 조정된 $R^2$, 또는 AIC에 따라 순위가 매겨진 주어진 예측 변수 수에 대한 최적 모델의 선택된 변수를 표시하는 내장 `plot()` 명령이 있다.
+이 함수에 대해 더 알아보려면 `?plot.regsubsets`를 입력하면 된다.
+.
+
+```{r chunk610}
+plot(regfit.full, scale = "r2")
+plot(regfit.full, scale = "adjr2")
+plot(regfit.full, scale = "Cp")
+plot(regfit.full, scale = "bic")
+```
+
+각 플롯의 맨 위 행에는 해당 통계량과 관련된 최적 모델에 따라 선택된 각 변수에 대한 검정된 검정된 검정된 흑백 정사각형이 있다. 예를 들어, 여러 모델이 BIC가 $-150$에 가까운 것을 볼 수 있다. 그러나 가장 낮은 BIC를 갖는 모델은 `AtBat`, `Hits`, `Walks`, `CRBI`, `DivisionW`, `PutOuts`만 포함하는 6개 변수 모델다.
+이 모델과 관련된 계수 추정치를 확인하기 위해 `coef()` 함수를 사용할 수 있다.
+
+
+```{r chunk611}
+coef(regfit.full, 6)
+```
+
+
+
+
+
+### 전진선택법(Forward StepWise Selection)과 후진선택법(Backward Stepwise Selection)
+
+`regsubsets()` 함수를 사용하여 전진 선택법 또는 후진 선택법을 수행할 수 있다. 이는 `method = "forward"` 또는 `method = "backward"` 인수를 사용하여 수행된다.
+
+
+```{r chunk612}
+regfit.fwd <- regsubsets(Salary ~ ., data = Hitters,
+    nvmax = 19, method = "forward")
+summary(regfit.fwd)
+regfit.bwd <- regsubsets(Salary ~ ., data = Hitters,
+    nvmax = 19, method = "backward")
+summary(regfit.bwd)
+```
+
+예를 들어, 전진 선택법을 사용하여 최상의 일변수 모형은 `CRBI`만 포함하고, 최상의 이변수 모형에는 추가로 `Hits`가 포함됩니다. 이 데이터에서 최상의 일변수부터 육변수 모형까지는 최상의 부분집합과 전진 선택법이 각각 동일합니다. 그러나 전진 선택법, 후진 선택법 및 최상의 부분집합 선택에 의해 식별된 최상의 칠변수 모형은 서로 다릅니다.
+
+
+```{r chunk613}
+coef(regfit.full, 7)
+coef(regfit.fwd, 7)
+coef(regfit.bwd, 7)
+```
+
+
+
+
+
+### 교차타당성(Cross-Validatoin)으로 모형 선택
+
+우리는 방금 $C_p$, BIC 및 조정된 $R^2$를 사용하여 다른 크기의 모델 중에서 선택하는 것이 가능함을 보았다. 이제 교차타당성을 사용하는 방법을 알아볼 것이다.
+
+이러한 방법들이 테스트 오류의 정확한 추정치를 제공하려면 *훈련 관측값만을 사용*하여 변수 선택을 포함한 모형 적합의 모든 측면을 수행해야 합니다. 따라서 주어진 크기의 어떤 모형이 가장 좋은지 결정해야 할 때는 *훈련 관측값만을 사용*해야 합니다. 이 점은 미묘하지만 중요하다. 전체 데이터셋을 사용하여 최상의 부분집합선택 단계를 수행하면 검증 집합 오류 및 교차 검증 오류가 테스트 오류의 정확한 추정치가 아닐 수 있다.
+
+이제 교차타당성(Cross Validation)을 사용하여 다양한 크기의 모델 중에서 선택하는 방법을 시도해볼 것이다.
+이 접근 방법은 다소 복잡하다. 각각의 *$k$ 훈련 집합 내에서* 최상의 부분집합 선택을 수행해야 하기 때문이이다. 그럼에도 불구하고, `R`에서 쉽게 구현할 수 있다.
+먼저, 각 관측값을 $k=10$ 폴드 중 하나로 할당하는 벡터를 생성하고 결과를 저장할 행렬을 만든다.
+
+```{r chunk621}
+k <- 10
+n <- nrow(Hitters)
+set.seed(1)
+folds <- sample(rep(1:k, length = n))
+cv.errors <- matrix(NA, k, 19,
+    dimnames = list(NULL, paste(1:19)))
+```
+
+이제 교차 검증을 수행하는 for 루프를 작성한다. $j$번째 폴드에서 `folds`의 요소 중 `j`와 같은 요소는 테스트 집합에 속하고 나머지 요소는 훈련 집합에 속합니다. 우리는 각 모델 크기에 대해 예측을 만들고(새로운 `predict()` 메서드를 사용하여), 적절한 하위 집합에서 테스트 오류를 계산하고 `cv.errors` 행렬의 적절한 슬롯에 저장합니다. 다음 코드에서 주의해야 할 점은 `best.fit` 객체가 `regsubsets` 클래스를 가지고 있으므로 `predict()`를 호출할 때 `R`이 자동으로 아래에 작성된 `predict.regsubsets()` 함수를 사용하게 해야 한다.
+
+```{r chunk619}
+ predict.regsubsets <- function(object, newdata, id, ...) {
+  form <- as.formula(object$call[[2]])
+  mat <- model.matrix(form, newdata)
+  coefi <- coef(object, id = id)
+  xvars <- names(coefi)
+  mat[, xvars] %*% coefi
+ }
+```
+
+
+```{r chunk622}
+for (j in 1:k) {
+  best.fit <- regsubsets(Salary ~ .,
+       data = Hitters[folds != j, ],
+       nvmax = 19)
+  for (i in 1:19) {
+    pred <- predict(best.fit, Hitters[folds == j, ], id = i)
+    cv.errors[j, i] <-
+         mean((Hitters$Salary[folds == j] - pred)^2)
+   }
+ }
+```
+
+이렇게 하면 $10 \times 19$ 행렬이 생성된다. 여기서 $(j,i)$번째 요소는 최적 $i$-변수 모델에 대한 $j$번째 교차 검증 폴드의 테스트 MSE에 해당합니다. `apply()` 함수를 사용하여 이 행렬의 열을 평균내어 $i$번째 요소가 $i$-변수 모델에 대한 교차 검증 오류인 벡터를 얻을 수 있습니다.
+
+```{r chunk623}
+mean.cv.errors <- apply(cv.errors, 2, mean)
+mean.cv.errors
+par(mfrow = c(1, 1))
+plot(mean.cv.errors, type = "b")
+```
+
+교차 검증은 10-변수 모형을 선택한다. 이제 전체 데이터셋에서 최상의 부분집합 선택을 수행하여 10-변수 모형형을 얻는다.
+
+```{r chunk624}
+reg.best <- regsubsets(Salary ~ ., data = Hitters,
+    nvmax = 19)
+coef(reg.best, 10)
+```
+
+
+
+
+## 능선회귀와 라쏘
+
+능선회귀 및 라쏘를 수행하기 위해 `glmnet` 패키지를 사용할 것이다.
+이 패키지의 주요 함수는 `glmnet()`으로, 릿지 회귀 모형, 라쏘 모형 등을 적합하는 데 사용된다.
+이 함수는 이 책에서 이전에 다룬 다른 모형 적합 함수들과 약간 다른 구문을 가지고 있다. 특히 `x` 행렬과 `y` 벡터를 전달해야 하며, `y ~ x` 구문은 사용하지 않는다. 이제 `Hitters` 데이터에서 Salary를 예측하기 위해 능선회귀 및 라쏘를 수행할 것이다. 진행하기 전에 앞에서처럼 누락된 값을 데이터에서 제거해야 한다.
+
+
+```{r chunk625}
+x <- model.matrix(Salary ~ ., Hitters)[, -1]
+y <- Hitters$Salary
+```
+
+`model.matrix()` 함수는 `x`를 생성하는 데 유용하다. 이 함수는 $19$개의 예측 변수에 해당하는 행렬을 생성하는 뿐만 아니라 어떤 질적 변수든 자동으로 가변수로 변환한다. 후자의 특성은 `glmnet()`이 숫자형, 양적 입력만을 처리할 수 있기 때문에 중요하다.
+
+
+### 능선회귀(Ridge Regression)
+
+`glmnet()` 함수에는 어떤 유형의 모형이 적합되는지를 결정하는 `alpha` 인수가 있습니다. `alpha=0`이면 능선회귀 모형이 적합하고, `alpha=1`이면 라쏘 모형을 적합한다. 먼저 능선회귀(Ridge Regression) 모형을 적합한다.
+
+```{r chunk626}
+library(glmnet)
+grid <- 10^seq(10, -2, length = 100)
+ridge.mod <- glmnet(x, y, alpha = 0, lambda = grid)
+```
+
+기본적으로 `glmnet()` 함수는 $\lambda$ 값의 자동으로 선택된 범위에 대해 능선회귀를 수행한다. 그러나 여기서는 $\lambda=10^{10}$부터 $\lambda=10^{-2}$까지의 값 범위의 그리드에서 함수를 구현하기로 선택했다. 이는 근본적으로 절편만을 포함하는 널 모형에서부터 최소 제곱 적합까지의 모든 시나리오를 커버한다. 표준화된 변수들이 동일한 척도에 있도록 `glmnet()` 함수가 기본적으로 변수들을 표준화한다. 이 기본 설정을 해제하려면 `standardize = FALSE` 인수를 사용하면 된다.
+
+각 $\lambda$ 값과 관련된 능선회귀 계수의 벡터가 있으며, 이는 `coef()`로 접근할 수 있는 행렬에 저장된다. 이 경우, 이는 $20 \times 100$ 행렬이며, $20$개의 행(각 예측 변수와 절편을 포함)과 $100$개의 열(각 $\lambda$ 값에 대한)이 있다.
+
+
+```{r chunk627}
+dim(coef(ridge.mod))
+```
+
+큰 $\lambda$ 값을 사용할 때 능선회귀 계수 추정치가 $\ell_2$ 노름 측면에서 훨씬 작다. 이것들은 $\lambda=11{,}498$일 때의 계수와 그 때의 $\ell_2$ 노름이다:
+
+```{r chunk628}
+ridge.mod$lambda[50]
+coef(ridge.mod)[, 50]
+sqrt(sum(coef(ridge.mod)[-1, 50]^2))
+```
+
+반면, $\lambda=705$일 때의 계수와 그들의 $\ell_2$ 노름은 다음과 같다. 이 작은 $\lambda$ 값과 관련된 계수의 $\ell_2$ 노름은 훨씬 크다.
+
+
+```{r chunk629}
+ridge.mod$lambda[60]
+coef(ridge.mod)[, 60]
+sqrt(sum(coef(ridge.mod)[-1, 60]^2))
+```
+
+우리는 `predict()` 함수를 여러 목적으로 사용할 수 있다. 예를 들어, 새로운 $\lambda$ 값인 $50$에 대한 능선회귀 계수를 얻을 수 있다.
+
+```{r chunk630}
+predict(ridge.mod, s = 50, type = "coefficients")[1:20, ]
+```
+
+이제 데이터를 훈련 집합과 테스트 집합으로 나누어 능선회귀 및 라쏘의 테스트 오류를 추정한다. 데이터 세트를 임의로 분할하는 두 가지 일반적인 방법이 있다. 첫 번째는 `TRUE`, `FALSE` 요소의 임의 벡터를 생성하고 `TRUE`에 해당하는 관측치를 훈련 데이터로 선택하는 것이다. 두 번째는 $1$부터 $n$까지의 수를 임의로 선택하여 이를 훈련 데이터의 인덱스로 사용하는 것이다. 두 가지 접근 방식은 동일하게 잘 작동합니다. 여기서는 후자의 접근 방식을 사용한다.
+
+먼저 결과를 재현 가능하게 하기 위해 임의 시드를 설정한다.
+
+```{r chunk631}
+set.seed(1)
+train <- sample(1:nrow(x), nrow(x) / 2)
+test <- (-train)
+y.test <- y[test]
+```
+
+다음으로 훈련 세트에서 능선회귀 모델을 적합하고 $\lambda=4$를 사용하여 테스트 집합에서 MSE를 평가한다 다시 한번 predict() 함수를 사용한다. 이번에는 `type="coefficients"`를 `newx` 인수로 대체하여 테스트 세트에 대한 예측을 얻는다.
+
+
+```{r chunk632}
+ridge.mod <- glmnet(x[train, ], y[train], alpha = 0,
+    lambda = grid, thresh = 1e-12)
+ridge.pred <- predict(ridge.mod, s = 4, newx = x[test, ])
+mean((ridge.pred - y.test)^2)
+```
+
+테스트 MSE는 $142,199$입니다.
+만약 절편만 있는 모형을 단순히 적합했다면 각 테스트 관측치를 훈련 관측치의 평균으로 예측했을 것이다. 그 경우 테스트 세트 MSE는 다음과 같이 계산할 수 있다.
+
+
+```{r chunk633}
+mean((mean(y[train]) - y.test)^2)
+```
+
+이와 같은 결과를 얻기 위해 매우 큰 $\lambda$ 값을 사용하여 릿지 회귀 모델을 적합할 수도 있다. 여기서 `1e10`은 $10^{10}$을 의미합니다.
+
+```{r chunk634}
+ridge.pred <- predict(ridge.mod, s = 1e10, newx = x[test, ])
+mean((ridge.pred - y.test)^2)
+```
+
+따라서 $\lambda=4$로 능선회귀 모형을 적합하는 것이 단순히 절편만 있는 모형을 적합하는 것보다 훨씬 낮은 테스트 MSE를 가지게 된다.
+이제 $\lambda=4$로 능선회귀를 수행하는 것과 최소 제곱 회귀를 수행하는 것 사이에 어떤 이익이 있는지 확인해 볼 것이다.
+최소 제곱은 단순히 $\lambda=0$인 능선회귀이다. (`glmnet()`이 $\lambda=0$일 때 정확한 최소 제곱 계수를 생성하려면 `predict()` 함수를 호출할 때 `exact = T` 인수를 사용한다. 그렇지 않으면 `predict()` 함수는 `glmnet()` 모델 적합에 사용된 $\lambda$ 값 그리드를 보간하여 근사 결과를 생성한다. `exact = T`를 사용하더라도 `glmnet()`의 출력과 `lm()`의 출력 사이에 세 번째 소수 자리에서 약간의 차이가 있다. 이것은 `glmnet()`의 수치 근사로 인한 것이다.)
+
+
+```{r chunk635}
+ridge.pred <- predict(ridge.mod, s = 0, newx = x[test, ],
+    exact = T, x = x[train, ], y = y[train])
+mean((ridge.pred - y.test)^2)
+lm(y ~ x, subset = train)
+predict(ridge.mod, s = 0, exact = T, type = "coefficients",
+    x = x[train, ], y = y[train])[1:20, ]
+```
+
+일반적으로 (정규화가 안된) 최소 제곱 모델을 적합하려면 더 유용한 출력(계수의 표준 오차 및 p-값과 같은)을 제공하는 `lm()` 함수를 사용해야 한다.
+
+일반적으로 $\lambda=4$를 임의로 선택하는 대신 교차 검증을 사용하여 조정 매개변수 $\lambda$를 선택하는 것이 더 좋다.
+내장된 교차 검증 함수 `cv.glmnet()`을 사용하여 이를 수행할 수 있습니다. 기본적으로 이 함수는 10겹 교차 검증을 수행하지만 `nfolds` 인수를 사용하여 변경할 수 있다. 교차 검증 폴드의 선택이 임의적이므로 결과를 재현 가능하게 하기 위해 먼저 임의 시드를 설정한다.
+
+
+```{r chunk636}
+set.seed(1)
+cv.out <- cv.glmnet(x[train, ], y[train], alpha = 0)
+plot(cv.out)
+bestlam <- cv.out$lambda.min
+bestlam
+```
+
+따라서 최소 교차 검증 오류를 나타내는 $\lambda$ 값은 $326$이다. 이 $\lambda$ 값과 관련된 테스트 MSE는 다음과 같이 계산할 수 있다.
+
+
+```{r chunk637}
+ridge.pred <- predict(ridge.mod, s = bestlam,
+    newx = x[test, ])
+mean((ridge.pred - y.test)^2)
+```
+
+이는 $\lambda=4$를 사용한 테스트 MSE에 비해 더 큰 개선을 나타냅니다.
+마지막으로, 교차 검증으로 선택된 $\lambda$ 값으로 전체 데이터셋에 대해 다시 능선 회귀 모형을 적합하고 계수 추정치를 조사한다.
+
+```{r chunk638}
+out <- glmnet(x, y, alpha = 0)
+predict(out, type = "coefficients", s = bestlam)[1:20, ]
+```
+
+예상대로, 모든 계수가 0이 아니다---릿지 회귀는 변수 선택을 수행하지 않는다.
+
+### 라쏘(Lasso)
+
+`Hitters` 데이터셋에서 적절한 $\lambda$ 선택으로 능선회귀가 최소 제곱 및 널 모형보다 더 나은 성능을 보였다.  이제 라쏘가 릿지 회귀보다 더 정확하거나 더 해석 가능한 모형을 생성할 수 있는지 확인하고자 하낟. 라쏘 모형을 적합하기 위해 다시 한 번 `glmnet()` 함수를 사용하지만, 이번에는 `alpha=1` 인수를 사용한다. 이 외에는 능선회귀와 같다.
+
+```{r chunk639}
+lasso.mod <- glmnet(x[train, ], y[train], alpha = 1,
+    lambda = grid)
+plot(lasso.mod)
+```
+
+계수 그래프에서 튜닝 매개변수 선택에 따라 일부 계수가 정확히 0이 될 수 있음을 확인할 수 있다. 이제 교차 검증을 수행하고 관련된 테스트 오류를 계산한다.
+
+```{r chunk640}
+set.seed(1)
+cv.out <- cv.glmnet(x[train, ], y[train], alpha = 1)
+plot(cv.out)
+bestlam <- cv.out$lambda.min
+lasso.pred <- predict(lasso.mod, s = bestlam,
+    newx = x[test, ])
+mean((lasso.pred - y.test)^2)
+```
+
+이는 널 모형과 최소 제곱의 테스트 세트 MSE보다 상당히 낮으며, 교차 검증을 통해 선택된 $\lambda$로 능선회귀의 테스트 MSE와 매우 유사합니다.
+
+그러나 라쏘는 결과적으로 계수 추정이 희소(sparse)하게 된다는 면에서 능선회귀에 비해 상당한 장점이 있다. 여기서 19개의 계수 추정치 중 8개가 정확히 0임을 확인할 수 있다. 따라서 교차 검증을 통해 선택된 $\lambda$ 값을 사용했을 때 라쏘 모델은 11개 변수만 포함한다.
+
+```{r chunk641}
+out <- glmnet(x, y, alpha = 1, lambda = grid)
+lasso.coef <- predict(out, type = "coefficients",
+    s = bestlam)[1:20, ]
+lasso.coef
+lasso.coef[lasso.coef != 0]
+```
+
+
+
+# 다항회귀, 비모수회귀, 일반화 가법모형
+
+이 실습에서는 이 장에서 다룬 복잡한 비선형 적합 절차 중 많은 것들이 R에서 쉽게 구현될 수 있음을 보여주기 위해 예제에서 사용된 Wage 데이터를 다시 분석한다. 먼저 데이터를 포함하는 `ISLR2` 라이브러리를 로드한다.
+
+
+```{r chunk71}
+library(ISLR2)
+attach(Wage)
+```
+
+
+## 다항회귀모형(Polynomial Regression) 
+
+다음 명령을 사용하여 다항회귀모형을 적합한다.
+
+```{r chunk72}
+fit <- lm(wage ~ poly(age, 4), data = Wage)
+coef(summary(fit))
+```
+
+이 구문은 `lm()` 함수를 사용하여 `age`의 4차 다항식을 사용하여 `wage`를 예측하는 선형 모형을 적합한다: `poly(age, 4)`. `poly()` 명령을 사용하면 `age`의 제곱, 세제곱 및 네제곱 등 긴 공식을 작성할 필요가 없다. 이 함수는 *직교 다항식*의 기저를 반환하는데, 이는 각 열이 변수 `age`, `age^2`, `age^3` 및 `age^4`의 선형 조합임을 의미합니다.
+
+그러나 `raw = TRUE` 인수를 poly() 함수에 사용하면 직접 `age`, `age^2`, `age^3` 및 `age^4`를 얻는다.  어떤 것을 선택하든 모형에 의미있는 영향은 주지 않는다. 기저의 선택은 계수 추정치를 다르게 하지만 적합된 값에는 영향을 미치지 않는다.
+
+```{r chunk73}
+fit2 <- lm(wage ~ poly(age, 4, raw = T), data = Wage)
+coef(summary(fit2))
+```
+
+이 모형을 적합하는 다른 동등한 방법이 여러 가지 있으며, 이는 `R`의 유연성을 보여준다.
+
+
+```{r chunk74}
+fit2a <- lm(wage ~ age + I(age^2) + I(age^3) + I(age^4),
+    data = Wage)
+coef(fit2a)
+```
+
+이 코드는 `age^2`와 같은 항을 *wrapper* 함수 `I()`를 통해 만들면서 다항식 기저 함수를 생성합니다. (수식에서 `^` 기호는 특수한 의미를 가집니다).
+
+```{r chunk75}
+fit2b <- lm(wage ~ cbind(age, age^2, age^3, age^4),
+    data = Wage)
+```
+
+이 코드는 `cbind()` 함수를 이용하여 같은 작업을 좀 더 간략하게 나타낸다. `cbind()` 같은 함수도 *wrapper* 함수로 작동한다.
+
+이제 `age`에 대한 예측값을 원하는 `age` 값의 그리드에 대해 생성하고, 표준 오차를 함께 얻기 위해 일반적인 `predict()` 함수를 호출한다.
+
+```{r chunk76}
+agelims <- range(age)
+age.grid <- seq(from = agelims[1], to = agelims[2])
+preds <- predict(fit, newdata = list(age = age.grid),
+    se = TRUE)
+se.bands <- cbind(preds$fit + 2 * preds$se.fit,
+    preds$fit - 2 * preds$se.fit)
+```
+
+마지막으로, 자료와 4차 다항식 적합값을 플롯한다.
+Finally, we plot the data and add the fit from the degree-4 polynomial.
+
+```{r chunk77}
+par(mfrow = c(1, 2), mar = c(4.5, 4.5, 1, 1),
+    oma = c(0, 0, 4, 0))
+plot(age, wage, xlim = agelims, cex = .5, col = "darkgrey")
+title("Degree-4 Polynomial", outer = T)
+lines(age.grid, preds$fit, lwd = 2, col = "blue")
+matlines(age.grid, se.bands, lwd = 1, col = "blue", lty = 3)
+```
+
+여기서 `par()` 함수의 `mar` 및 `oma` 인수를 사용하여 플롯의 여백을 제어하고, `title()` 함수는 두 하위 플롯에 모두 적용되는 피겨 제목을 생성합니다.
+
+이전에 언급한 바와 같이 `poly()` 함수에서 직교 세트의 기저 함수가 생성되는지 여부는 얻은 모형에 영향을 미치지 않는데, 둘의 적합값은 동일하다.
+
+```{r chunk78}
+preds2 <- predict(fit2, newdata = list(age = age.grid),
+    se = TRUE)
+max(abs(preds$fit - preds2$fit))
+```
+
+
+## 계단함수를 이용한 회귀모형(Step Functions)
+
+계단 함수를 적합하기 위해 `cut()` 함수를 사용합니다.
+
+```{r chunk718}
+table(cut(age, 4))
+fit <- lm(wage ~ cut(age, 4), data = Wage)
+coef(summary(fit))
+```
+
+여기서 `cut()`은 자동으로 $33.5$, $49$, $64.5$ 세의 절점을 선택했다. `breaks` 옵션을 사용하여 직접 자르기점을 지정할 수도 있다.
+함수 `cut()`은 순서가 지정된 범주형 변수를 반환하며, `lm()` 함수는 회귀 분석에 사용할 가변수 집합을 생성합니다. `age < 33.5` 범주는 제외되므로, $94{,}160$의 절편 계수는 $33.5$세 미만인 사람들의 평균 급여로 해석될 수 있으며, 다른 계수는 다른 연령 그룹에 속한 사람들의 평균 추가 급여로 해석될 수 있다.
+다항식 적합의 경우와 마찬가지로 예측 및 플롯을 생성할 수 있다.
+
+## 회귀 스플라인(regression spline)
+
+R에서 회귀 스플라인을 적합하려면 `splines` 라이브러리를 사용한다.
+`bs()` 함수는 지정된 절점을 가진 스플라인의 전체 기저 함수 행렬을 생성한다. 기본적으로 3차 스플라인이 생성된다.
+아래와 같이 회귀 스플라인을 사용하여 `age`에 대한 `wage`를 적합한다.
+
+```{r chunk719}
+library(splines)
+fit <- lm(wage ~ bs(age, knots = c(25, 40, 60)), data = Wage)
+pred <- predict(fit, newdata = list(age = age.grid), se = T)
+plot(age, wage, col = "gray")
+lines(age.grid, pred$fit, lwd = 2)
+lines(age.grid, pred$fit + 2 * pred$se, lty = "dashed")
+lines(age.grid, pred$fit - 2 * pred$se, lty = "dashed")
+```
+
+여기서는 나이 $25$, $40$, $60$에서 미리 지정된 절점이 있다. 이것은 여섯 개의 기저 함수를 가진 스플라인을 생성한다. (세 절점을 가진 3차 스플라인은 일곱 자유도를 가지고 있다; 이 자유도는 절편에 사용되며, 여섯 개의 기저 함수를 사용한다.) 우리는 또한 데이터의 균일 분위수에서 절점을 가지는 스플라인을 생성하기 위해 `df` 옵션을 사용할 수 있다.
+
+
+```{r chunk720}
+dim(bs(age, knots = c(25, 40, 60)))
+dim(bs(age, df = 6))
+attr(bs(age, df = 6), "knots")
+```
+
+이 경우 `R`은 데이터의 25th, 50th 및 75th 백분위수에 해당하는 $33.8, 42.0$, 및 $51.0$ 세의 나이에서 절점을 선택한다. `bs()` 함수에는 `degree` 인수도 있으므로, 기본적으로 3차 스플라인을 생성하는 대신 어떤 차수의 스플라인을 적합할 수 있다.
+
+## 자연 스플라인(natural spline)
+
+자연 스플라인을 적합하기 위해 ns() 함수를 사용한다.
+여기서 우리는 자유도가 4개인 자연 스플라인을 적합한다.
+
+```{r chunk721}
+fit2 <- lm(wage ~ ns(age, df = 4), data = Wage)
+pred2 <- predict(fit2, newdata = list(age = age.grid),
+     se = T)
+plot(age, wage, col = "gray")
+lines(age.grid, pred2$fit, col = "red", lwd = 2)
+```
+
+`bs()` 함수와 마찬가지로 `knots` 옵션을 사용하여 직접 절점을 지정할 수도 있다.
+
+## 평활 스플라인(smoothing splines)
+
+평활 스플라인을 적합하기 위해 `smooth.spline()` 함수를 사용한다.
+
+```{r chunk722}
+plot(age, wage, xlim = agelims, cex = .5, col = "darkgrey")
+title("Smoothing Spline")
+fit <- smooth.spline(age, wage, df = 16)
+fit2 <- smooth.spline(age, wage, cv = TRUE)
+fit2$df
+lines(fit, col = "red", lwd = 2)
+lines(fit2, col = "blue", lwd = 2)
+legend("topright", legend = c("16 DF", "6.8 DF"),
+    col = c("red", "blue"), lty = 1, lwd = 2, cex = .8)
+```
+
+첫 번째 `smooth.spline()` 호출에서 `df = 16`을 지정했다. 함수는 자유도가 16개인 $\lambda$ 값이 되도록 결정한다.
+두 번째 `smooth.spline()` 호출에서는 교차 검증을 통해 부드러운 정도를 선택한다. 이로써 자유도가 6.8개인 $\lambda$ 값을 얻는다.
+
+
+## 국소 회귀모형(local regression)
+
+국소 회귀를 수행하기 위해 `loess()` 함수를 사용합니다.
+
+```{r chunk723}
+plot(age, wage, xlim = agelims, cex = .5, col = "darkgrey")
+title("Local Regression")
+fit <- loess(wage ~ age, span = .2, data = Wage)
+fit2 <- loess(wage ~ age, span = .5, data = Wage)
+lines(age.grid, predict(fit, data.frame(age = age.grid)),
+    col = "red", lwd = 2)
+lines(age.grid, predict(fit2, data.frame(age = age.grid)),
+    col = "blue", lwd = 2)
+legend("topright", legend = c("Span = 0.2", "Span = 0.5"),
+    col = c("red", "blue"), lty = 1, lwd = 2, cex = .8)
+```
+
+여기서 우리는 $0.2$ 및 $0.5$의 스패닝을 사용하여 국소 선형 회귀를 수행했다. 즉, 각 이웃은 관측치의 20\% 또는 50\%를 포함한다. 스패닝이 클수록 적합이 부드러워진다.
+`R`에서 국소 회귀 모형을 적합하는 데에는 `locfit` 라이브러리도 사용할 수 있다.
+
+
+
+## 일반화 가법모형(generalized additive models)
+이제 `lyear`와 `age`의 자연 스플라인 함수를 사용하여 `education`을 질적 예측 변수로 사용하여 `wage`를 예측하는 GAM을 적합합니다. 이는 적절한 기저 함수 선택을 사용한 큰 선형 회귀 모형일 뿐이므로, lm() 함수를 사용하여 간단히 수행할 수 있다.
+
+
+```{r chunk724}
+gam1 <- lm(wage ~ ns(year, 4) + ns(age, 5) + education,
+    data = Wage)
+```
+
+이제 위의 모형을 자연 스플라인 대신 평활 스플라인을 사용하여 적합한다. 기저 함수로 표현할 수 없는 평활 스플라인이나 다른 구성 요소를 사용하여 보다 일반적인 종류의 GAM을 적합하기 위해서는 `R`의 `gam` 라이브러리를 사용해야 한다.
+
+`s()` 함수는 `gam` 라이브러리의 일부이며, 평활 스플라인을 사용하려는 것을 나타낸다. `lyear` 함수의 자유도를 $4$로, age 함수의 자유도를 $5$로 지정한다. `education`이 질적이므로 그대로 둔 채, 네 개의 가변수로 변환된다. `gam()` 함수를 사용하여 이러한 구성 요소를 사용하여 GAM을 적합한다.
+
+```{r chunk725}
+library(gam)
+gam.m3 <- gam(wage ~ s(year, 4) + s(age, 5) + education,
+    data = Wage)
+```
+
+
+그러고 나서 `plot()` 함수를 불러온다.
+
+```{r chunk726}
+par(mfrow = c(1, 3))
+plot(gam.m3, se = TRUE, col = "blue")
+```
+
+일반적인 `plot()` 함수는 `gam.m3`가 `Gam` 클래스의 객체임을 인식하고 적절한 `plot.Gam()` 메서드를 호출한다. 편리하게도, `gam1`이 `Gam` 클래스가 아니라 `lm` 클래스임에도 불구하고 우리는 여전히 그 위에 `plot.Gam()`을 사용할 수 있다.
+
+```{r chunk727}
+plot.Gam(gam1, se = TRUE, col = "red")
+```
+
+여기서 일반적인 `plot()` 함수 대신 `plot.Gam()`을 사용했다.
+
+
+summary() 함수는 gam 적합의 요약을 생성합니다.
+
+The `summary()` function produces a summary of the gam fit.
+
+```{r chunk729}
+summary(gam.m3)
+```
+
+"Parametric Effects에 대한 Anova" p-값은 year, age, 그리고 education이 모두 선형 관계만을 가정할 때에도 매우 통계적으로 유의미하다는 것을 명백히 보여준다. 반면에, year와 age에 대한 "비모수적 효과에 대한 Anova" p-값은 선형 관계 대비 비선형 관계의 귀무 가설을 나타낸다. year에 대한 큰 p-값은 ANOVA 테스트에서 우리의 결론을 강화한다. 그러나 `age`에 대한 비선형 항이 필요하다는 매우 명백한 증거가 있습니다.
